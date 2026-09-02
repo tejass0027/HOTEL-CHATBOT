@@ -19,6 +19,7 @@ model Guest {
   bookingRequests BookingRequest[]
   serviceTickets  ServiceTicket[]
   escalations     Escalation[]
+  orders          Order[]
 }
 
 enum ConversationStatus {
@@ -42,6 +43,7 @@ model Conversation {
   bookingRequests BookingRequest[]
   serviceTickets  ServiceTicket[]
   escalations     Escalation[]
+  orders          Order[]
 
   @@index([guestId])
 }
@@ -148,4 +150,54 @@ model Escalation {
   updatedAt      DateTime         @updatedAt
 
   @@index([guestId])
+}
+
+enum OrderStatus {
+  DRAFT
+  AWAITING_PAYMENT
+  PAID
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+model Order {
+  id               String       @id @default(cuid())
+  guestId          String
+  guest            Guest        @relation(fields: [guestId], references: [id])
+  conversationId   String
+  conversation     Conversation @relation(fields: [conversationId], references: [id])
+  status           OrderStatus  @default(DRAFT)
+  currency         String
+  // Total in minor units (paise/cents) — see src/lib/money.ts. Kept as its
+  // own column rather than always summing items so a paid order's charged
+  // amount stays fixed even if items are later edited for record-keeping.
+  totalMinor       Int          @default(0)
+  paymentProvider  String?
+  paymentReference String?
+  paymentLinkUrl   String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  items OrderItem[]
+
+  @@index([guestId])
+  @@index([conversationId])
+}
+
+model OrderItem {
+  id             String   @id @default(cuid())
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id])
+  // References config/menu.ts MenuItem.id — menu items live in a config
+  // file, not the DB, so this isn't a foreign key.
+  menuItemId     String
+  // Name/price are snapshotted at order time so a paid order's receipt
+  // doesn't change if the menu is edited later.
+  name           String
+  unitPriceMinor Int
+  quantity       Int
+  createdAt      DateTime @default(now())
+
+  @@index([orderId])
 }

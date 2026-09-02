@@ -14,7 +14,7 @@ npm install
 npm run prisma:migrate
 ```
 
-`prisma:migrate` creates the database tables (Guest, Conversation, Message, BookingRequest, ServiceTicket, Escalation) from `prisma/schema.prisma`. Re-run it any time the schema changes.
+`prisma:migrate` creates the database tables (Guest, Conversation, Message, BookingRequest, ServiceTicket, Escalation, Order, OrderItem) from `prisma/schema.prisma`. Re-run it any time the schema changes.
 
 ## 1. Set up the Meta WhatsApp Cloud API app
 
