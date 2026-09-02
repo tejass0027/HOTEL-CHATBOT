@@ -8,6 +8,7 @@ import {
   findOrCreateActiveConversation,
   recordInboundMessage,
 } from "../db/queries";
+import { handleOrderingMessage } from "../ordering/flow";
 import { log, redactPhone } from "../logger";
 import type {
   WhatsAppWebhookBody,
@@ -116,17 +117,11 @@ async function handleInboundMessage(message: WhatsAppInboundMessage): Promise<vo
     log("Failed to mark message as read", { error: String(err) })
   );
 
-  if (message.type !== "text") {
-    await sendMessage(message.from, conversation.id, {
-      type: "text",
-      body: "I can only read text messages for now — please type your question and I'll help.",
-    });
-    return;
-  }
+  const handled = await handleOrderingMessage(message, guest.id, conversation.id);
+  if (handled) return;
 
-  const incomingText = message.text?.body ?? "";
   await sendMessage(message.from, conversation.id, {
     type: "text",
-    body: `Echo: ${incomingText}`,
+    body: "Say 'hi' to see our menu and place an order.",
   });
 }

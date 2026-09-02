@@ -17,7 +17,7 @@ export const hotel = {
   city: "Placeholder City",
   country: "Placeholder Country",
   address: "Placeholder full address, for guest-facing replies",
-  currency: "USD",
+  currency: "INR",
 
   checkInTime: "15:00",
   checkOutTime: "11:00",
