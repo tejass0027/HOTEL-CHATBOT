@@ -64,15 +64,18 @@ In the app dashboard: **WhatsApp → Configuration → Webhook → Edit**.
 
 ## 5. Test it
 
-From the WhatsApp number you added as a test recipient, send `hi` to the test business number shown in the API Setup page. You should get the main menu as a tappable list. Tap **Order Food** to get the dish menu — pick an item, then use the Checkout button to get a (fake, stub) payment link. The other menu options (Hotel Info, Book a Room, Request Service, Talk to Staff) currently reply "coming soon" — those flows aren't built yet.
+From the WhatsApp number you added as a test recipient, send `hi` to the test business number shown in the API Setup page. You should get the main menu as a tappable list.
+- Tap **Order Food** to get the dish menu — pick an item, then use the Checkout button to get a (fake, stub) payment link.
+- Tap **Talk to Staff**, then type a message — you should get a "we've let our staff know" confirmation, and the owner's number should get the escalation template (once approved, see step 6).
 
-## 6. Owner order receipts
+## 6. Owner notifications (order receipts + staff escalations)
 
-The bot's own number is fully automated via the Cloud API, so the owner can't just check its inbox normally — order receipts need to land on the owner's own separate personal WhatsApp number instead.
+The bot's own number is fully automated via the Cloud API, so the owner can't just check its inbox normally — both order receipts and "talk to staff" requests need to land on the owner's own separate personal WhatsApp number instead.
 
 1. Set `OWNER_WHATSAPP_NUMBER` in `.env` to the owner's personal number (international format, e.g. `+91XXXXXXXXXX`), **not** the bot's own `WHATSAPP_PHONE_NUMBER_ID` number.
-2. The owner isn't guaranteed to have messaged the bot in the last 24h, so receipts are sent as an approved **message template** rather than a free-form message (Meta requires this outside the 24h window). Create one in the Meta app dashboard: **WhatsApp → Message Templates → Create Template**, category "Utility", with a body like:
+2. The owner isn't guaranteed to have messaged the bot in the last 24h, so both notification types are sent as approved **message templates** rather than free-form messages (Meta requires this outside the 24h window). Create two templates in the Meta app dashboard: **WhatsApp → Message Templates → Create Template**, category "Utility":
 
+   Order receipt (set `WHATSAPP_ORDER_RECEIPT_TEMPLATE_NAME` to whatever you name it):
    ```
    New order {{1}} — PAID.
    Guest: {{2}}
@@ -80,8 +83,14 @@ The bot's own number is fully automated via the Cloud API, so the owner can't ju
    Total: {{4}}
    ```
 
-   Submit it for approval (usually a few hours). Set `WHATSAPP_ORDER_RECEIPT_TEMPLATE_NAME` in `.env` to whatever you name it, and `WHATSAPP_TEMPLATE_LANGUAGE` to match the language you submitted it in (default `en_US`).
-3. Until the template is approved, you can still test the rest of the flow — the receipt send will just fail (logged, not fatal) until the template exists.
+   Staff escalation (set `WHATSAPP_ESCALATION_TEMPLATE_NAME` to whatever you name it):
+   ```
+   Guest {{1}} wants to talk to staff:
+   {{2}}
+   ```
+
+   Submit both for approval (usually a few hours). Set `WHATSAPP_TEMPLATE_LANGUAGE` to match the language you submitted them in (default `en_US`).
+3. Until a template is approved, you can still test the rest of the flow — that specific notification send will just fail (logged, not fatal) until its template exists.
 
 ### Testing the payment webhook manually
 

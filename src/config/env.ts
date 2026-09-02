@@ -23,5 +23,7 @@ export const env = {
   // because the owner isn't guaranteed to be within the 24h free-form
   // messaging window when an order comes in.
   orderReceiptTemplateName: required("WHATSAPP_ORDER_RECEIPT_TEMPLATE_NAME"),
+  // Same reasoning as above, for "guest wants to talk to staff" notifications.
+  escalationTemplateName: required("WHATSAPP_ESCALATION_TEMPLATE_NAME"),
   whatsappTemplateLanguage: process.env.WHATSAPP_TEMPLATE_LANGUAGE ?? "en_US",
 };

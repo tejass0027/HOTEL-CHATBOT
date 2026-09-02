@@ -3,7 +3,9 @@ import { sendMessage } from "../whatsapp/send";
 import { sendMainMenu, MAIN_MENU_PREFIX } from "./mainMenu";
 import { sendMenu as sendFoodMenu } from "../ordering/menu";
 import { handleOrderingMessage } from "../ordering/flow";
+import { startEscalation, submitEscalationMessage, PENDING_ESCALATION_MESSAGE } from "./talkToStaff";
 import { findActiveOrder } from "../db/orderQueries";
+import { getPendingAction } from "../db/queries";
 
 const GREETINGS = new Set(["hi", "hello", "hey", "hii", "menu", "start", "help"]);
 
@@ -11,19 +13,10 @@ function isGreeting(text: string): boolean {
   return GREETINGS.has(text.trim().toLowerCase());
 }
 
-// Features not built yet (see project plan) — tapping these gives a clear
-// "not yet" reply instead of silently doing nothing.
-const COMING_SOON: Record<string, string> = {
-  hotel_info: "Hotel info is coming soon — for now, please contact the front desk directly.",
-  book_room: "Room booking requests are coming soon — for now, please contact the front desk.",
-  request_service: "Service requests are coming soon — for now, please contact the front desk.",
-  talk_to_staff: "Staff handoff is coming soon — for now, please contact the front desk directly.",
-};
-
 /**
- * Top-level entry point for every inbound message: owns the greeting →
- * main menu → feature routing. Anything it doesn't own itself (cart taps,
- * checkout buttons) falls through to handleOrderingMessage.
+ * Top-level entry point for every inbound message: owns pending-flow state,
+ * greeting → main menu, and main-menu dispatch. Anything it doesn't own
+ * itself (cart taps, checkout buttons) falls through to handleOrderingMessage.
  */
 export async function routeInboundMessage(
   message: WhatsAppInboundMessage,
@@ -43,25 +36,37 @@ export async function routeInboundMessage(
         return true;
       }
 
-      const stubReply = COMING_SOON[option];
-      if (stubReply) {
-        await sendMessage(to, conversationId, { type: "text", body: stubReply });
+      if (option === "talk_to_staff") {
+        await startEscalation(to, conversationId);
         return true;
       }
     }
   }
 
-  if (message.type === "text" && isGreeting(message.text?.body ?? "")) {
-    const activeOrder = await findActiveOrder(guestId);
-    if (activeOrder?.status === "AWAITING_PAYMENT") {
-      await sendMessage(to, conversationId, {
-        type: "text",
-        body: `You already have an order awaiting payment: ${activeOrder.paymentLinkUrl}`,
-      });
+  if (message.type === "text") {
+    const text = message.text?.body ?? "";
+
+    // Mid-flow state takes priority over greeting matching — if the guest
+    // is answering "what do you need help with?", treat their reply as
+    // that answer even if it happens to look like a greeting.
+    const pendingAction = await getPendingAction(conversationId);
+    if (pendingAction === PENDING_ESCALATION_MESSAGE) {
+      await submitEscalationMessage(to, guestId, conversationId, text);
       return true;
     }
-    await sendMainMenu(to, conversationId);
-    return true;
+
+    if (isGreeting(text)) {
+      const activeOrder = await findActiveOrder(guestId);
+      if (activeOrder?.status === "AWAITING_PAYMENT") {
+        await sendMessage(to, conversationId, {
+          type: "text",
+          body: `You already have an order awaiting payment: ${activeOrder.paymentLinkUrl}`,
+        });
+        return true;
+      }
+      await sendMainMenu(to, conversationId);
+      return true;
+    }
   }
 
   return handleOrderingMessage(message, guestId, conversationId);

@@ -36,6 +36,11 @@ model Conversation {
   // Timestamp of the guest's most recent inbound message. Drives the
   // WhatsApp 24h customer-service-window check before sending free-form replies.
   lastInboundAt DateTime?
+  // Lightweight state for guided flows that need the *next* free-text reply
+  // to mean something specific (e.g. "this text is their message for staff")
+  // without any NLU — set when a flow asks a free-text question, cleared
+  // once it's answered. Null means "not mid-flow, route normally."
+  pendingAction String?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 

@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { paymentProvider } from "../payments";
 import { findOrderByPaymentReference, markOrderPaidIfAwaiting } from "../db/orderQueries";
 import { sendMessage } from "../whatsapp/send";
-import { notifyOwnerOfPaidOrder } from "../ordering/ownerNotify";
+import { notifyOwnerOfPaidOrder } from "../staff/notify";
 import { log } from "../logger";
 import type { PaymentWebhookEvent } from "../payments/provider";
 

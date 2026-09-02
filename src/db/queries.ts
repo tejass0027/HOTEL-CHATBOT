@@ -101,3 +101,18 @@ export async function isWithinServiceWindow(conversationId: string): Promise<boo
 
   return Date.now() - conversation.lastInboundAt.getTime() < SERVICE_WINDOW_MS;
 }
+
+export async function setPendingAction(conversationId: string, action: string | null): Promise<void> {
+  await prisma.conversation.update({
+    where: { id: conversationId },
+    data: { pendingAction: action },
+  });
+}
+
+export async function getPendingAction(conversationId: string): Promise<string | null> {
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: { pendingAction: true },
+  });
+  return conversation?.pendingAction ?? null;
+}
