@@ -9,6 +9,7 @@ import {
   recordInboundMessage,
 } from "../db/queries";
 import { routeInboundMessage } from "../flows/router";
+import { isRateLimited } from "../security/rateLimit";
 import { log, redactPhone } from "../logger";
 import type {
   WhatsAppWebhookBody,
@@ -105,6 +106,11 @@ async function handleInboundMessage(message: WhatsAppInboundMessage): Promise<vo
 
   if (!stored) {
     log("Skipped duplicate message", { id: message.id });
+    return;
+  }
+
+  if (isRateLimited(message.from)) {
+    log("Rate limited inbound message", { from: redactPhone(message.from) });
     return;
   }
 
