@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Guest {
+  id                String   @id @default(cuid())
+  phone             String   @unique
+  name              String?
+  preferredLanguage String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  conversations   Conversation[]
+  bookingRequests BookingRequest[]
+  serviceTickets  ServiceTicket[]
+  escalations     Escalation[]
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ESCALATED
+  CLOSED
+}
+
+model Conversation {
+  id            String             @id @default(cuid())
+  guestId       String
+  guest         Guest              @relation(fields: [guestId], references: [id])
+  status        ConversationStatus @default(ACTIVE)
+  // Timestamp of the guest's most recent inbound message. Drives the
+  // WhatsApp 24h customer-service-window check before sending free-form replies.
+  lastInboundAt DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  messages        Message[]
+  bookingRequests BookingRequest[]
+  serviceTickets  ServiceTicket[]
+  escalations     Escalation[]
+
+  @@index([guestId])
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+model Message {
+  id                String           @id @default(cuid())
+  conversationId    String
+  conversation      Conversation     @relation(fields: [conversationId], references: [id])
+  direction         MessageDirection
+  // WhatsApp's own message id. Unique + used for redelivery dedup on
+  // inbound messages; null is allowed since some outbound sends (or
+  // failures before Meta assigns an id) won't have one.
+  whatsappMessageId String?          @unique
+  messageType       String
+  body              String?
+  rawPayload        Json?
+  createdAt         DateTime         @default(now())
+
+  @@index([conversationId])
+}
+
+enum BookingRequestStatus {
+  PENDING
+  CONFIRMED
+  DECLINED
+  CANCELLED
+}
+
+model BookingRequest {
+  id             String               @id @default(cuid())
+  guestId        String
+  guest          Guest                @relation(fields: [guestId], references: [id])
+  conversationId String?
+  conversation   Conversation?        @relation(fields: [conversationId], references: [id])
+  guestName      String
+  checkIn        DateTime             @db.Date
+  checkOut       DateTime             @db.Date
+  numGuests      Int
+  roomTypeId     String
+  contactPhone   String
+  status         BookingRequestStatus @default(PENDING)
+  notes          String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([guestId])
+}
+
+enum ServiceTicketType {
+  LATE_CHECKOUT
+  EXTRA_TOWELS
+  TAXI_BOOKING
+  OTHER
+}
+
+enum ServiceTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+model ServiceTicket {
+  id             String              @id @default(cuid())
+  guestId        String
+  guest          Guest               @relation(fields: [guestId], references: [id])
+  conversationId String?
+  conversation   Conversation?       @relation(fields: [conversationId], references: [id])
+  type           ServiceTicketType
+  details        String
+  status         ServiceTicketStatus @default(OPEN)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([guestId])
+}
+
+enum EscalationReason {
+  GUEST_REQUESTED
+  MODEL_UNSURE
+  COMPLAINT_DETECTED
+}
+
+enum EscalationStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+model Escalation {
+  id             String           @id @default(cuid())
+  guestId        String
+  guest          Guest            @relation(fields: [guestId], references: [id])
+  conversationId String
+  conversation   Conversation     @relation(fields: [conversationId], references: [id])
+  reason         EscalationReason
+  notes          String?
+  status         EscalationStatus @default(OPEN)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([guestId])
+}

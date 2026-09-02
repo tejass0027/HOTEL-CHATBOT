@@ -10,6 +10,7 @@ function required(name: string): string {
 
 export const env = {
   port: Number(process.env.PORT ?? 3000),
+  databaseUrl: required("DATABASE_URL"),
   whatsappVerifyToken: required("WHATSAPP_VERIFY_TOKEN"),
   whatsappAppSecret: required("WHATSAPP_APP_SECRET"),
   whatsappAccessToken: required("WHATSAPP_ACCESS_TOKEN"),

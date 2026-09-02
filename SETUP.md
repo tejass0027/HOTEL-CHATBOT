@@ -1,5 +1,18 @@
 # Setup
 
+## 0. Start Postgres and run migrations
+
+Requires Docker Desktop running locally.
+
+```bash
+docker compose up -d
+cp .env.example .env   # if you haven't already — DATABASE_URL already matches docker-compose.yml
+npm install
+npm run prisma:migrate
+```
+
+`prisma:migrate` creates the database tables (Guest, Conversation, Message, BookingRequest, ServiceTicket, Escalation) from `prisma/schema.prisma`. Re-run it any time the schema changes.
+
 ## 1. Set up the Meta WhatsApp Cloud API app
 
 You need a Meta developer account and a business (a personal Facebook account is enough to start with the free test number).
