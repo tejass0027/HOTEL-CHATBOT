@@ -1,8 +1,13 @@
 import { Router, Request, Response } from "express";
 import { env } from "../config/env";
 import { isValidSignature } from "./signature";
-import { isDuplicateMessage } from "./dedup";
-import { sendTextMessage, markMessageAsRead } from "../whatsapp/client";
+import { markMessageAsRead } from "../whatsapp/client";
+import { sendMessage } from "../whatsapp/send";
+import {
+  findOrCreateGuest,
+  findOrCreateActiveConversation,
+  recordInboundMessage,
+} from "../db/queries";
 import { log, redactPhone } from "../logger";
 import type {
   WhatsAppWebhookBody,
@@ -72,8 +77,32 @@ async function processWebhookBody(body: WhatsAppWebhookBody): Promise<void> {
   }
 }
 
+function extractMessageBody(message: WhatsAppInboundMessage): string | null {
+  if (message.type === "text") return message.text?.body ?? null;
+  if (message.type === "interactive") {
+    return (
+      message.interactive?.button_reply?.title ??
+      message.interactive?.list_reply?.title ??
+      null
+    );
+  }
+  return null;
+}
+
 async function handleInboundMessage(message: WhatsAppInboundMessage): Promise<void> {
-  if (isDuplicateMessage(message.id)) {
+  const guest = await findOrCreateGuest(message.from);
+  const conversation = await findOrCreateActiveConversation(guest.id);
+
+  const stored = await recordInboundMessage({
+    conversationId: conversation.id,
+    whatsappMessageId: message.id,
+    messageType: message.type,
+    body: extractMessageBody(message),
+    rawPayload: message,
+    receivedAt: new Date(Number(message.timestamp) * 1000),
+  });
+
+  if (!stored) {
     log("Skipped duplicate message", { id: message.id });
     return;
   }
@@ -88,13 +117,16 @@ async function handleInboundMessage(message: WhatsAppInboundMessage): Promise<vo
   );
 
   if (message.type !== "text") {
-    await sendTextMessage(
-      message.from,
-      "I can only read text messages for now — please type your question and I'll help."
-    );
+    await sendMessage(message.from, conversation.id, {
+      type: "text",
+      body: "I can only read text messages for now — please type your question and I'll help.",
+    });
     return;
   }
 
   const incomingText = message.text?.body ?? "";
-  await sendTextMessage(message.from, `Echo: ${incomingText}`);
+  await sendMessage(message.from, conversation.id, {
+    type: "text",
+    body: `Echo: ${incomingText}`,
+  });
 }

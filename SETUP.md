@@ -2,7 +2,10 @@
 
 ## 0. Start Postgres and run migrations
 
-Requires Docker Desktop running locally.
+Requires Docker Desktop running locally. **This step is no longer optional** —
+since phase 3, every inbound message writes to the database (guest, conversation,
+message record), so the bot will log a `Can't reach database server` error and
+fail to reply if Postgres isn't running.
 
 ```bash
 docker compose up -d
