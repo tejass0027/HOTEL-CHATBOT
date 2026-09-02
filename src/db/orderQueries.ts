@@ -77,3 +77,21 @@ export async function markOrderAwaitingPayment(
     },
   });
 }
+
+export async function findOrderByPaymentReference(reference: string) {
+  return prisma.order.findFirst({
+    where: { paymentReference: reference },
+    include: { items: true, guest: true },
+  });
+}
+
+/** No-ops (returns null) if the order isn't currently AWAITING_PAYMENT, so a
+ *  redelivered webhook can't double-fire the owner notification. */
+export async function markOrderPaidIfAwaiting(orderId: string) {
+  const result = await prisma.order.updateMany({
+    where: { id: orderId, status: "AWAITING_PAYMENT" },
+    data: { status: "PAID" },
+  });
+  if (result.count === 0) return null;
+  return prisma.order.findUniqueOrThrow({ where: { id: orderId }, include: { items: true, guest: true } });
+}

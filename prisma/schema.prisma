@@ -183,6 +183,7 @@ model Order {
 
   @@index([guestId])
   @@index([conversationId])
+  @@index([paymentReference])
 }
 
 model OrderItem {

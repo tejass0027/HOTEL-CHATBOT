@@ -37,7 +37,7 @@ You do **not** need WhatsApp Business verification, a real phone number, or app 
 cp .env.example .env
 ```
 
-Fill in `WHATSAPP_VERIFY_TOKEN` (your own invented string), `WHATSAPP_APP_SECRET`, `WHATSAPP_ACCESS_TOKEN`, and `WHATSAPP_PHONE_NUMBER_ID` from step 1 above.
+Fill in `WHATSAPP_VERIFY_TOKEN` (your own invented string), `WHATSAPP_APP_SECRET`, `WHATSAPP_ACCESS_TOKEN`, and `WHATSAPP_PHONE_NUMBER_ID` from step 1 above. See step 6 below for the `OWNER_WHATSAPP_NUMBER` and template variables.
 
 ## 3. Run the server and expose it via ngrok
 
@@ -64,4 +64,33 @@ In the app dashboard: **WhatsApp → Configuration → Webhook → Edit**.
 
 ## 5. Test it
 
-From the WhatsApp number you added as a test recipient, send a message to the test business number shown in the API Setup page. You should see it echoed back (`Echo: <your message>`), and the bot's own log line for the inbound message (phone number redacted).
+From the WhatsApp number you added as a test recipient, send `hi` to the test business number shown in the API Setup page. You should get the dish menu as a tappable list — pick an item, then use the Checkout button to get a (fake, stub) payment link.
+
+## 6. Owner order receipts
+
+The bot's own number is fully automated via the Cloud API, so the owner can't just check its inbox normally — order receipts need to land on the owner's own separate personal WhatsApp number instead.
+
+1. Set `OWNER_WHATSAPP_NUMBER` in `.env` to the owner's personal number (international format, e.g. `+91XXXXXXXXXX`), **not** the bot's own `WHATSAPP_PHONE_NUMBER_ID` number.
+2. The owner isn't guaranteed to have messaged the bot in the last 24h, so receipts are sent as an approved **message template** rather than a free-form message (Meta requires this outside the 24h window). Create one in the Meta app dashboard: **WhatsApp → Message Templates → Create Template**, category "Utility", with a body like:
+
+   ```
+   New order {{1}} — PAID.
+   Guest: {{2}}
+   Items: {{3}}
+   Total: {{4}}
+   ```
+
+   Submit it for approval (usually a few hours). Set `WHATSAPP_ORDER_RECEIPT_TEMPLATE_NAME` in `.env` to whatever you name it, and `WHATSAPP_TEMPLATE_LANGUAGE` to match the language you submitted it in (default `en_US`).
+3. Until the template is approved, you can still test the rest of the flow — the receipt send will just fail (logged, not fatal) until the template exists.
+
+### Testing the payment webhook manually
+
+There's no real payment gateway wired up yet (see `src/payments/stubProvider.ts`), so nothing calls `POST /webhooks/payment` on its own. To manually simulate a payment confirming, place an order through the bot up to the Checkout step, find the order's `paymentReference` (`stub_<orderId>` — check the DB or the payment link the bot sent you), then:
+
+```bash
+curl -X POST http://localhost:3000/webhooks/payment \
+  -H "Content-Type: application/json" \
+  -d '{"reference":"stub_<orderId>","status":"paid"}'
+```
+
+You should get a WhatsApp confirmation message, and the owner's number should get the receipt template (once approved).

@@ -1,6 +1,7 @@
 import express, { Request } from "express";
 import { env } from "./config/env";
 import { webhookRouter } from "./webhook";
+import { paymentWebhookRouter } from "./webhook/payment";
 import { log } from "./logger";
 
 const app = express();
@@ -20,6 +21,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/webhook", webhookRouter);
+app.use("/webhooks/payment", paymentWebhookRouter);
 
 app.listen(env.port, () => {
   log(`Server listening on port ${env.port}`);
