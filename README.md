@@ -1,14 +1,15 @@
 # Hotel WhatsApp Bot
 
-A WhatsApp chatbot for a hotel, built on the Meta WhatsApp Business Cloud API.
+A WhatsApp ordering bot for a restaurant, built on the Meta WhatsApp Business Cloud API.
 
-It talks to guests directly in WhatsApp to:
-- Answer FAQs from a hotel-maintained knowledge base (check-in/out times, amenities, parking, pet policy, wifi, breakfast hours, airport distance, cancellation policy).
-- Show room types and pricing for a requested date range.
-- Collect booking requests (name, dates, guests, room type, contact), store them, and notify staff — it does not charge cards or confirm availability against a real PMS.
-- Log existing-guest service requests (late checkout, extra towels, taxi booking) as tickets for staff.
-- Escalate to a human when the guest asks for one, the bot is unsure, or the message sounds like a complaint.
+It's fully menu/button-driven — no AI or free-text understanding involved. Guests:
+- Say "hi" to get a main menu.
+- **Order Food**: browse the dish menu as a WhatsApp list, add items to a cart, review the total, and check out. Checkout sends a payment link in the chat (currently a non-functional stub — see `src/payments/`, no real gateway is wired up yet).
+- **Talk to Staff**: type what they need help with; it's relayed as-is to the owner, no interpretation.
 
-Built with Node.js/TypeScript, Express, PostgreSQL (Prisma), and the Anthropic API for understanding free-text messages and generating replies.
+Once a payment link is paid, the guest gets a confirmation and the owner gets an order receipt on their own personal WhatsApp number (the bot's number is fully automated via the Cloud API, so the owner can't just read its inbox directly).
 
-For local setup instructions, see [SETUP.md](SETUP.md).
+Built with Node.js/TypeScript, Express, and PostgreSQL (Prisma).
+
+- Local setup: [SETUP.md](SETUP.md)
+- Deploying to Railway: [DEPLOY.md](DEPLOY.md)
