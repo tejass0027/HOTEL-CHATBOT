@@ -64,7 +64,7 @@ In the app dashboard: **WhatsApp → Configuration → Webhook → Edit**.
 
 ## 5. Test it
 
-From the WhatsApp number you added as a test recipient, send `hi` to the test business number shown in the API Setup page. You should get the dish menu as a tappable list — pick an item, then use the Checkout button to get a (fake, stub) payment link.
+From the WhatsApp number you added as a test recipient, send `hi` to the test business number shown in the API Setup page. You should get the main menu as a tappable list. Tap **Order Food** to get the dish menu — pick an item, then use the Checkout button to get a (fake, stub) payment link. The other menu options (Hotel Info, Book a Room, Request Service, Talk to Staff) currently reply "coming soon" — those flows aren't built yet.
 
 ## 6. Owner order receipts
 
